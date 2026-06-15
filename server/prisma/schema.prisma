@@ -1,0 +1,501 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Authentication & Authorization ---
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  SALES_EXECUTIVE
+  DESIGNER
+  SURVEYOR
+  PRODUCTION_MANAGER
+  LOGISTICS_MANAGER
+  TECHNICIAN
+  DRIVER
+  CUSTOMER
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  fullName      String
+  role          UserRole  @default(SALES_EXECUTIVE)
+  phone         String?
+  avatar        String?
+  isActive      Boolean   @default(true)
+  
+  // Relations
+  company       Company?  @relation(fields: [companyId], references: [id])
+  companyId     String?
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  branchId      String?
+  employee      Employee?
+  
+  // CRM
+  assignedLeads Lead[]    @relation("AssignedTo")
+  
+  // Projects
+  projects      Project[] @relation("ProjectManager")
+  
+  // Notifications
+  notifications Notification[]
+  
+  // Audit
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+}
+
+// --- HR & Company Management ---
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  logo        String?
+  address     String?
+  website     String?
+  gstNumber   String?
+  
+  // Relations
+  branches    Branch[]
+  users       User[]
+  departments Department[]
+  
+  // Audit
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String
+  company     Company    @relation(fields: [companyId], references: [id])
+  companyId   String
+  employees   Employee[]
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Employee {
+  id            String      @id @default(uuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String      @unique
+  department    Department  @relation(fields: [departmentId], references: [id])
+  departmentId  String
+  designation   String?
+  joiningDate   DateTime?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum BranchType {
+  MANUFACTURING_UNIT
+  OUTLET
+  WAREHOUSE
+}
+
+model Branch {
+  id          String     @id @default(uuid())
+  name        String
+  type        BranchType
+  address     String?
+  phone       String?
+  
+  // Relations
+  company     Company    @relation(fields: [companyId], references: [id])
+  companyId   String
+  users       User[]
+  inventory   Stock[]
+  movements   StockMovement[]
+  
+  // Audit
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// --- CRM / Lead Management ---
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model Lead {
+  id            String     @id @default(uuid())
+  customerName  String
+  email         String?
+  phone         String
+  requirement   String?    @db.Text
+  status        LeadStatus @default(NEW)
+  source        String?
+  
+  // Relations
+  assignedTo    User?      @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId  String?
+  project       Project?
+  interactions  Interaction[]
+  
+  // Audit
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Interaction {
+  id        String   @id @default(uuid())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  leadId    String
+  type      String   // Email, Call, Meeting
+  notes     String   @db.Text
+  date      DateTime @default(now())
+}
+
+// --- Interior Design & Projects ---
+
+enum ProjectStatus {
+  PLANNING
+  DESIGN_PHASE
+  SURVEY_PENDING
+  PRODUCTION
+  DELIVERY
+  INSTALLATION
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id            String        @id @default(uuid())
+  title         String
+  description   String?       @db.Text
+  status        ProjectStatus @default(PLANNING)
+  budget        Decimal?      @db.Decimal(10, 2)
+  
+  // Relations
+  lead          Lead?         @relation(fields: [leadId], references: [id])
+  leadId        String?       @unique
+  manager       User?         @relation("ProjectManager", fields: [managerId], references: [id])
+  managerId     String?
+  
+  designs       Design[]
+  surveys       Survey[]
+  quotations    Quotation[]
+  tasks         ProjectTask[]
+  invoices      Invoice[]
+  deliveries    DeliveryOrder[]
+  installations InstallationOrder[]
+  
+  // Audit
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Design {
+  id            String   @id @default(uuid())
+  project       Project  @relation(fields: [projectId], references: [id])
+  projectId     String
+  version       Int      @default(1)
+  fileUrl       String
+  thumbnailUrl  String?
+  notes         String?  @db.Text
+  isApproved    Boolean  @default(false)
+  
+  // Audit
+  createdAt     DateTime @default(now())
+}
+
+model Survey {
+  id            String   @id @default(uuid())
+  project       Project  @relation(fields: [projectId], references: [id])
+  projectId     String
+  details       Json     // Measurements, notes
+  photos        Json?    // Array of URLs
+  
+  // Audit
+  createdAt     DateTime @default(now())
+}
+
+// --- Inventory & Manufacturing ---
+
+model Product {
+  id            String   @id @default(uuid())
+  sku           String   @unique
+  name          String
+  description   String?  @db.Text
+  category      String?
+  price         Decimal  @db.Decimal(10, 2)
+  
+  // Relations
+  bom           BOM[]
+  stocks        Stock[]
+  movements     StockMovement[]
+  productionOrders ProductionOrder[]
+  
+  // Audit
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model RawMaterial {
+  id            String   @id @default(uuid())
+  sku           String   @unique
+  name          String
+  unit          String   // kg, m, sqft, pcs
+  costPerUnit   Decimal  @db.Decimal(10, 2)
+  
+  // Relations
+  bomItems      BOMItem[]
+  
+  // Audit
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BOM {
+  id            String    @id @default(uuid())
+  product       Product   @relation(fields: [productId], references: [id])
+  productId     String
+  name          String    // Variation name
+  items         BOMItem[]
+  
+  // Audit
+  createdAt     DateTime  @default(now())
+}
+
+model BOMItem {
+  id            String      @id @default(uuid())
+  bom           BOM         @relation(fields: [bomId], references: [id])
+  bomId         String
+  material      RawMaterial @relation(fields: [materialId], references: [id])
+  materialId    String
+  quantity      Decimal     @db.Decimal(10, 2)
+}
+
+model Stock {
+  id            String   @id @default(uuid())
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  branchId      String
+  quantity      Int      @default(0)
+  
+  @@unique([productId, branchId])
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  branchId      String
+  quantity      Int      // Positive for in, negative for out
+  type          String   // SALE, PURCHASE, TRANSFER, PRODUCTION, ADJUSTMENT
+  reference     String?  // Order ID, etc.
+  
+  createdAt     DateTime @default(now())
+}
+
+// --- Manufacturing WIP & QC ---
+
+enum ProductionStatus {
+  PENDING
+  IN_PROGRESS
+  QC_CHECK
+  COMPLETED
+  CANCELLED
+}
+
+model ProductionOrder {
+  id            String           @id @default(uuid())
+  product       Product          @relation(fields: [productId], references: [id])
+  productId     String
+  quantity      Int
+  status        ProductionStatus @default(PENDING)
+  startDate     DateTime?
+  endDate       DateTime?
+  
+  qualityChecks QualityCheck[]
+  scrapRecords  ScrapRecord[]
+  
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model QualityCheck {
+  id                String   @id @default(uuid())
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  productionOrderId String
+  passed            Boolean
+  notes             String?  @db.Text
+  checkedBy         String?
+  
+  createdAt         DateTime @default(now())
+}
+
+model ScrapRecord {
+  id                String   @id @default(uuid())
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  productionOrderId String
+  materialName      String
+  quantity          Decimal  @db.Decimal(10, 2)
+  reason            String?
+  
+  createdAt         DateTime @default(now())
+}
+
+// --- Logistics & Delivery ---
+
+model Vehicle {
+  id            String   @id @default(uuid())
+  regNumber     String   @unique
+  model         String
+  type          String
+  status        String   @default("AVAILABLE") // AVAILABLE, BUSY, MAINTENANCE
+  
+  deliveries    DeliveryOrder[]
+}
+
+model DeliveryOrder {
+  id            String   @id @default(uuid())
+  project       Project  @relation(fields: [projectId], references: [id])
+  projectId     String
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id])
+  vehicleId     String?
+  driverId      String?  // Reference to User with role DRIVER
+  status        String   @default("PENDING") // PENDING, DISPATCHED, DELIVERED
+  deliveryDate  DateTime?
+  proofOfDelivery String? // URL
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model InstallationOrder {
+  id                String   @id @default(uuid())
+  project           Project  @relation(fields: [projectId], references: [id])
+  projectId         String
+  technicianId      String?  // Reference to User with role TECHNICIAN
+  status            String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  scheduledDate     DateTime?
+  completionPhotos  Json?    // Array of URLs
+  customerSignoff   String?  // URL to signature or photo
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// --- Sales & Finance ---
+
+model Quotation {
+  id            String    @id @default(uuid())
+  project       Project   @relation(fields: [projectId], references: [id])
+  projectId     String
+  totalAmount   Decimal   @db.Decimal(10, 2)
+  taxAmount     Decimal   @db.Decimal(10, 2)
+  status        String    @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED
+  
+  items         QuotationItem[]
+  milestones    PaymentMilestone[]
+  
+  // Audit
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model QuotationItem {
+  id            String    @id @default(uuid())
+  quotation     Quotation @relation(fields: [quotationId], references: [id])
+  quotationId   String
+  description   String
+  quantity      Int
+  unitPrice     Decimal   @db.Decimal(10, 2)
+  totalPrice    Decimal   @db.Decimal(10, 2)
+}
+
+model PaymentMilestone {
+  id            String    @id @default(uuid())
+  quotation     Quotation @relation(fields: [quotationId], references: [id])
+  quotationId   String
+  name          String    // e.g., Advance, Post-Design, Completion
+  percentage    Decimal   @db.Decimal(5, 2)
+  amount        Decimal   @db.Decimal(10, 2)
+  isPaid        Boolean   @default(false)
+}
+
+model Invoice {
+  id            String    @id @default(uuid())
+  project       Project   @relation(fields: [projectId], references: [id])
+  projectId     String
+  number        String    @unique
+  amount        Decimal   @db.Decimal(10, 2)
+  dueDate       DateTime
+  status        String    @default("UNPAID") // UNPAID, PARTIAL, PAID
+  
+  receipts      Receipt[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Receipt {
+  id            String    @id @default(uuid())
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id])
+  invoiceId     String
+  amount        Decimal   @db.Decimal(10, 2)
+  paymentMethod String    // CASH, BANK, UPI
+  reference     String?
+  
+  createdAt     DateTime  @default(now())
+}
+
+model Expense {
+  id            String    @id @default(uuid())
+  category      String    // Salary, Rent, Material, Utility
+  amount        Decimal   @db.Decimal(10, 2)
+  description   String?
+  date          DateTime  @default(now())
+  
+  createdAt     DateTime  @default(now())
+}
+
+// --- Notifications & Tasks ---
+
+model ProjectTask {
+  id            String    @id @default(uuid())
+  project       Project   @relation(fields: [projectId], references: [id])
+  projectId     String
+  title         String
+  description   String?
+  status        String    @default("TODO") // TODO, IN_PROGRESS, COMPLETED
+  dueDate       DateTime?
+  
+  // Audit
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Notification {
+  id            String    @id @default(uuid())
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  title         String
+  message       String
+  isRead        Boolean   @default(false)
+  type          String    // INFO, WARNING, SUCCESS
+  
+  createdAt     DateTime  @default(now())
+}

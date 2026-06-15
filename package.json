@@ -1,0 +1,17 @@
+{
+  "name": "furniture-erp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run start:dev",
+    "dev": "npx concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build:all": "cd client && npm run build && cd ../server && npm run build",
+    "prisma:generate": "cd server && npx prisma generate",
+    "prisma:seed": "cd server && npm run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
