@@ -1,0 +1,480 @@
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  width:100%;
+  overflow-x:hidden;
+  background:#f5f7fb;
+  font-family:Inter,sans-serif;
+}
+
+#root{
+  width:100%;
+}
+
+.reports-page{
+  width:100%;
+  min-height:100vh;
+  padding:20px 30px;
+  background:#f5f7fb;
+}
+
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.page-header h1{
+  font-size:30px;
+}
+
+.page-header p{
+  color:#777;
+  margin-top:5px;
+}
+
+.header-actions{
+  display:flex;
+  gap:10px;
+}
+
+.header-actions select,
+.header-actions input{
+  height:42px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:0 12px;
+}
+
+.export-btn{
+  border:none;
+  background:#2563eb;
+  color:#fff;
+  padding:0 18px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.tabs{
+  display:flex;
+  gap:30px;
+  border-bottom:1px solid #ddd;
+  padding-bottom:10px;
+}
+
+.tabs button{
+  background:none;
+  border:none;
+  cursor:pointer;
+  color:#666;
+  padding-bottom:10px;
+}
+
+.tabs .active{
+  color:#2563eb;
+  border-bottom:3px solid #2563eb;
+}
+
+/* ==========================
+   KPI CARDS
+========================== */
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:16px;
+  margin-top:20px;
+}
+
+.stat-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:18px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.icon{
+  width:45px;
+  height:45px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  color:#fff;
+}
+
+.blue{
+  background:#2563eb;
+}
+
+.green{
+  background:#22c55e;
+}
+
+.purple{
+  background:#9333ea;
+}
+
+.orange{
+  background:#f97316;
+}
+
+.cyan{
+  background:#06b6d4;
+}
+
+.stat-card p{
+  color:#6b7280;
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.stat-card h2{
+  font-size:20px;
+  font-weight:700;
+}
+
+.stat-card span{
+  color:#16a34a;
+  font-size:12px;
+}
+
+/* ==========================
+   ANALYTICS SECTION
+========================== */
+
+.analytics-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:16px;
+  margin-top:20px;
+}
+
+.chart-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+
+.card-header h3{
+  font-size:18px;
+  font-weight:600;
+}
+
+.card-header select{
+  height:36px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:0 10px;
+}
+
+.chart-placeholder{
+  height:280px;
+  border:2px dashed #d1d5db;
+  border-radius:10px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:#9ca3af;
+  font-weight:600;
+}
+
+.chart-area{
+  height:320px;
+}
+
+/* ==========================
+   DONUT CHART
+========================== */
+
+.donut-wrapper{
+  display:flex;
+  flex-direction:column;
+}
+
+.category-list{
+  margin-top:10px;
+}
+
+.category-item{
+  display:grid;
+  grid-template-columns:15px 1fr auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:8px;
+  font-size:13px;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  margin-right:8px;
+  display:inline-block;
+}
+
+.second-row{
+  display:grid;
+  grid-template-columns:22% 33% 45%;
+  gap:16px;
+  margin-top:20px;
+}
+
+.dashboard-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:20px;
+  min-height:320px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.dashboard-card h3{
+  font-size:18px;
+  font-weight:600;
+}
+
+.product-card{
+  overflow:hidden;
+}
+
+.table-wrapper{
+  width:100%;
+  overflow-x:auto;
+}
+
+.product-table{
+  width:100%;
+  min-width:650px;
+  border-collapse:collapse;
+  margin-top:15px;
+  font-size:13px;
+}
+
+.product-table th{
+  background:#f8fafc;
+  padding:10px;
+  text-align:left;
+  border-bottom:1px solid #e5e7eb;
+  font-weight:600;
+  white-space:nowrap;
+}
+
+.product-table td{
+  padding:10px;
+  border-bottom:1px solid #e5e7eb;
+  white-space:nowrap;
+}
+
+.product-table tr:hover{
+  background:#f9fafb;
+}
+
+.status-wrapper{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.status-chart{
+  position:relative;
+  width:100%;
+}
+
+.status-center{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+}
+
+.status-center h2{
+  margin:0;
+  font-size:24px;
+}
+
+.status-center span{
+  font-size:12px;
+  color:#666;
+}
+
+.status-legend{
+  margin-top:10px;
+  width:100%;
+}
+
+.status-legend div{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 0;
+  font-size:13px;
+}
+
+/* ==========================
+   INSIGHTS
+========================== */
+
+.insights-section{
+  margin-top:20px;
+}
+
+.insights-section h3{
+  margin-bottom:15px;
+  font-size:18px;
+}
+
+.insights-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:16px;
+}
+
+.insight-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  min-height:90px;
+  padding:20px;
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+
+.insight-card span{
+  font-size:28px;
+}
+
+.insight-card p{
+  font-size:14px;
+  line-height:1.5;
+  color:#4b5563;
+}
+
+/* ==========================
+   SHORTCUTS
+========================== */
+
+.shortcuts-card{
+  margin-top:20px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:20px;
+}
+
+.shortcuts-card h3{
+  margin-bottom:15px;
+  font-size:18px;
+}
+
+.shortcuts-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+.shortcuts-grid button{
+  border:1px solid #e5e7eb;
+  background:#fff;
+  padding:14px;
+  border-radius:8px;
+  text-align:left;
+  cursor:pointer;
+  font-size:14px;
+  transition:0.2s;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.shortcuts-grid button:hover{
+  background:#f8fafc;
+}
+
+/* ==========================
+   HEADER ICONS
+========================== */
+
+.icon-btn{
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:8px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.notification{
+  position:relative;
+  width:42px;
+  height:42px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+.notification span{
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  width:18px;
+  height:18px;
+  background:red;
+  color:#fff;
+  border-radius:50%;
+  font-size:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.admin-profile{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.admin-profile svg{
+  font-size:32px;
+  color:#64748b;
+}
+
+.admin-profile h5{
+  margin:0;
+  font-size:13px;
+}
+
+.admin-profile small{
+  color:#64748b;
+}
