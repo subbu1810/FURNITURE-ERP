@@ -1,4 +1,10 @@
 "use client";
+
+import { useState, useEffect } from "react";
+import { useInventoryStore } from "@/store/useInventoryStore";
+import { useRouter } from "next/navigation";
+import { CATEGORIES, WAREHOUSES, LOCATIONS, STATUSES, type StockItem } from "@/lib/inventory-data";
+import { Topbar } from "@/components/layout/Topbar";
 import {
   FaBox,
   FaWarehouse,
@@ -9,134 +15,182 @@ import {
   FaEllipsisV,
   FaFilter,
 } from "react-icons/fa";
-
 import "./page.css";
 
 function StockList() {
+  const [mounted, setMounted] = useState(false);
+  const [viewItem, setViewItem] = useState<StockItem | null>(null);
+  const [editItem, setEditItem] = useState<StockItem | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const {
+    items,
+    searchQuery,
+    category,
+    warehouse,
+    location,
+    status,
+    currentPage,
+    pageSize,
+    selectedIds,
+    setSearchQuery,
+    setCategory,
+    setWarehouse,
+    setLocation,
+    setStatus,
+    setPage,
+    toggleSelect,
+    toggleSelectAll,
+    getFilteredItems,
+    getStats,
+  } = useInventoryStore();
+
+  const filteredItems = getFilteredItems();
+  const stats = getStats();
+
+  const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentItems = filteredItems.slice(startIndex, startIndex + pageSize);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      // Add all visible IDs to the selection
+      currentItems.forEach(item => {
+        if (!selectedIds.has(item.id)) {
+          toggleSelect(item.id);
+        }
+      });
+    } else {
+      // Remove all visible IDs from the selection
+      currentItems.forEach(item => {
+        if (selectedIds.has(item.id)) {
+          toggleSelect(item.id);
+        }
+      });
+    }
+  };
+
+  const isAllSelected = currentItems.length > 0 && currentItems.every((i) => selectedIds.has(i.id));
+
+  const router = useRouter();
+
+  if (!mounted) return null;
+
+  const handleExport = () => {
+    const headers = ["SKU", "Product Name", "Category", "Warehouse", "Location", "Available Qty", "Status", "Stock Value"];
+    const csvContent = [
+      headers.join(","),
+      ...currentItems.map(item => 
+        [item.sku, `"${item.productName}"`, item.category, `"${item.warehouse}"`, `"${item.location}"`, item.availableQty, item.status, item.stockValue].join(",")
+      )
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "stock_list.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="layout">
-      
+    <div className="flex flex-col min-h-screen w-full bg-surface-page">
+      <Topbar 
+        title="Stock List" 
+        breadcrumb={["Inventory", "Stock List"]} 
+        showOutletFilter={false}
+        showDateFilter={false}
+        actionSlot={
+          <>
+            <button onClick={handleExport} className="px-4 py-2 border border-surface-border rounded-lg text-[13px] font-medium text-surface-text hover:bg-gray-50 mr-2 bg-white">Export</button>
+            <button onClick={() => router.push("/inventory/stock-in")} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-[13px] font-medium hover:bg-brand-700">+ Stock In</button>
+          </>
+        }
+      />
 
-      {/* Main Content */}
       <div className="main">
-
-
-        {/* Topbar */}
-        <div className="topbar">
-          <div>
-            <h2>Stock List</h2>
-
-            <div className="breadcrumb">
-              Inventory &gt; Stock List
-            </div>
-          </div>
-
-          <div className="header-right">
-            <select className="branch-select">
-              <option>HSR Layout Outlet</option>
-            </select>
-
-            <div className="notification">
-              🔔
-              <span className="notification-badge">5</span>
-            </div>
-
-            <div className="profile">
-              <div className="profile-avatar">A</div>
-              <span>Admin</span>
-            </div>
-
-            <div className="actions">
-              <button>Export</button>
-              <button className="stockBtn">+ Stock In</button>
-            </div>
-          </div>
-        </div>
-
         {/* Cards */}
         <div className="cards">
-          <div className="card">
+          <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatus("All Status")}>
             <div className="card-icon icon-blue">
               <FaBox />
             </div>
-
             <h4>Total Items</h4>
-            <h2>2,340</h2>
-
+            <h2>{stats.totalItems.toLocaleString("en-IN")}</h2>
             <p className="card-link">View all items →</p>
           </div>
 
-          <div className="card">
+          <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatus("In Stock")}>
             <div className="card-icon icon-green">
               <FaWarehouse />
             </div>
-
             <h4>In Stock</h4>
-            <h2>1,856</h2>
-
+            <h2>{stats.inStock.toLocaleString("en-IN")}</h2>
             <p className="card-percent green-text">
-              79.31% of total
+              {stats.totalItems > 0 ? ((stats.inStock / stats.totalItems) * 100).toFixed(2) : 0}% of total
             </p>
           </div>
 
-          <div className="card">
+          <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatus("Low Stock")}>
             <div className="card-icon icon-orange">
               <FaExclamationTriangle />
             </div>
-
             <h4>Low Stock</h4>
-            <h2>156</h2>
-
+            <h2>{stats.lowStock.toLocaleString("en-IN")}</h2>
             <p className="card-percent orange-text">
-              6.67% of total
+              {stats.totalSKUs > 0 ? ((stats.lowStock / stats.totalSKUs) * 100).toFixed(2) : 0}% of SKUs
             </p>
           </div>
 
-          <div className="card">
+          <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatus("Out of Stock")}>
             <div className="card-icon icon-red">
               <FaTimesCircle />
             </div>
-
             <h4>Out Of Stock</h4>
-            <h2>28</h2>
-
+            <h2>{stats.outOfStock.toLocaleString("en-IN")}</h2>
             <p className="card-percent red-text">
-              1.20% of total
+              {stats.totalSKUs > 0 ? ((stats.outOfStock / stats.totalSKUs) * 100).toFixed(2) : 0}% of SKUs
             </p>
           </div>
 
           <div className="card">
             <div className="card-icon icon-blue">₹</div>
-
             <h4>Stock Value</h4>
-            <h2>₹1,24,58,600</h2>
-
+            <h2>₹{stats.stockValue.toLocaleString("en-IN")}</h2>
             <p className="card-link">View valuation →</p>
           </div>
         </div>
 
         {/* Filters */}
         <div className="filters">
-          <select>
-            <option>All Categories</option>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          <select>
-            <option>All Warehouses</option>
+          <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
+            {WAREHOUSES.map(w => <option key={w} value={w}>{w}</option>)}
           </select>
 
-          <select>
-            <option>All Locations</option>
+          <select value={location} onChange={(e) => setLocation(e.target.value)}>
+            {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
 
-          <select>
-            <option>All Status</option>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           <div className="search">
             <FaSearch />
             <input
               placeholder="Search by product / SKU / Barcode"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
@@ -147,354 +201,240 @@ function StockList() {
         </div>
 
         {/* Table */}
-
-<div className="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th><input type="checkbox" /></th>
-        <th>Image</th>
-        <th>SKU / Barcode</th>
-        <th>Product</th>
-        <th>Category</th>
-        <th>Warehouse</th>
-        <th>Location</th>
-        <th>Available Qty</th>
-        <th>Unit</th>
-        <th>Status</th>
-        <th>Value</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-
-    <tbody>
-
-      {/* Row 1 */}
-      <tr>
-        <td><input type="checkbox" /></td>
-
-        <td>
-          <img
-            src="../src/assets/sofa.png"
-            alt="Sofa"
-            className="product-img"
-          />
-        </td>
-
-        <td>
-          <strong>SOF-001</strong>
-          <div className="barcode">8901234567890</div>
-        </td>
-
-        <td>3 Seater Sofa</td>
-        <td>Sofas</td>
-        <td>Main Warehouse</td>
-        <td>Aisle 01 - Rack 01</td>
-        <td><span className="qty-green">15</span></td>
-        <td>Nos</td>
-        <td><span className="green">In Stock</span></td>
-        <td>₹4,87,500</td>
-
-        <td>
-          <div className="action-icons">
-            <FaEye />
-            <FaEllipsisV />
-          </div>
-        </td>
-      </tr>
-
-      {/* Row 2 */}
-      <tr>
-        <td><input type="checkbox" /></td>
-
-        <td>
-          <img
-            src="../src/assets/bed.png"
-            alt="Bed"
-            className="product-img"
-          />
-        </td>
-
-        <td>
-          <strong>BED-001</strong>
-          <div className="barcode">8901234567891</div>
-        </td>
-
-        <td>King Size Bed</td>
-        <td>Beds</td>
-        <td>Main Warehouse</td>
-        <td>Aisle 02 - Rack 03</td>
-        <td><span className="qty-green">10</span></td>
-        <td>Nos</td>
-        <td><span className="green">In Stock</span></td>
-        <td>₹3,90,000</td>
-
-        <td>
-          <div className="action-icons">
-            <FaEye />
-            <FaEllipsisV />
-          </div>
-        </td>
-      </tr>
-
-      {/* Row 3 */}
-      <tr>
-        <td><input type="checkbox" /></td>
-
-        <td>
-          <img
-            src="../src/assets/dailingtable.png"
-            alt="Dining Table"
-            className="product-img"
-          />
-        </td>
-
-        <td>
-          <strong>DIN-TBL-001</strong>
-          <div className="barcode">8901234567892</div>
-        </td>
-
-        <td>Dining Table</td>
-        <td>Dining</td>
-        <td>Main Warehouse</td>
-        <td>Aisle 03 - Rack 02</td>
-        <td><span className="qty-orange">5</span></td>
-        <td>Nos</td>
-        <td><span className="orange">Low Stock</span></td>
-        <td>₹1,85,000</td>
-
-        <td>
-          <div className="action-icons">
-            <FaEye />
-            <FaEllipsisV />
-          </div>
-        </td>
-      </tr>
-
-      {/* Row 4 */}
-      <tr>
-        <td><input type="checkbox" /></td>
-
-        <td>
-          <img
-            src="../src/assets/officechair.png"
-            alt="Chair"
-            className="product-img"
-          />
-        </td>
-
-        <td>
-          <strong>CHR-001</strong>
-          <div className="barcode">8901234567893</div>
-        </td>
-
-        <td>Office Chair</td>
-        <td>Chairs</td>
-        <td>Main Warehouse</td>
-        <td>Aisle 04 - Rack 01</td>
-        <td><span className="qty-green">22</span></td>
-        <td>Nos</td>
-        <td><span className="green">In Stock</span></td>
-        <td>₹2,75,000</td>
-
-        <td>
-          <div className="action-icons">
-            <FaEye />
-            <FaEllipsisV />
-          </div>
-        </td>
-      </tr>
-
-      {/* Row 5 */}
-      <tr>
-        <td><input type="checkbox" /></td>
-
-        <td>
-          <img
-            src="../src/assets/woodenWardrobe.png"
-            alt="wooden"
-            className="product-img"
-          />
-        </td>
-
-        <td>
-          <strong>WRD-001</strong>
-          <div className="barcode">8901234567894</div>
-        </td>
-
-        <td>Wooden Wardrobe</td>
-        <td>Storage</td>
-        <td>Main Warehouse</td>
-        <td>Aisle 05 - Rack 04</td>
-        <td><span className="qty-red">0</span></td>
-        <td>Nos</td>
-        <td><span className="red">Out Of Stock</span></td>
-        <td>₹5,20,000</td>
-
-        <td>
-          <div className="action-icons">
-            <FaEye />
-            <FaEllipsisV />
-          </div>
-        </td>
-      </tr>
-
-      {/* Row 6 */}
-<tr>
-  <td><input type="checkbox" /></td>
-
-  <td>
-    <img
-      src="../src/assets/centertable.png"
-      alt="table"
-      className="product-img"
-    />
-  </td>
-
-  <td>
-    <strong>CTR-001</strong>
-    <div className="barcode">8901234567895</div>
-  </td>
-
-  <td>Center Table</td>
-  <td>Tables</td>
-  <td>Main Warehouse</td>
-  <td>Aisle 06 - Rack 01</td>
-  <td><span className="qty-green">8</span></td>
-  <td>Nos</td>
-  <td><span className="green">In Stock</span></td>
-  <td>₹1,25,000</td>
-
-  <td>
-    <div className="action-icons">
-      <FaEye />
-      <FaEllipsisV />
-    </div>
-  </td>
-</tr>
-
-{/* Row 7 */}
-<tr>
-  <td><input type="checkbox" /></td>
-
-  <td>
-    <img
-      src="../src/assets/tv.png"
-      alt="tv"
-      className="product-img"
-    />
-  </td>
-
-  <td>
-    <strong>TVU-001</strong>
-    <div className="barcode">8901234567896</div>
-  </td>
-
-  <td>TV Unit</td>
-  <td>Storage</td>
-  <td>Main Warehouse</td>
-  <td>Aisle 06 - Rack 02</td>
-  <td><span className="qty-green">12</span></td>
-  <td>Nos</td>
-  <td><span className="green">In Stock</span></td>
-  <td>₹2,10,000</td>
-
-  <td>
-    <div className="action-icons">
-      <FaEye />
-      <FaEllipsisV />
-    </div>
-  </td>
-</tr>
-
-{/* Row 8 */}
-<tr>
-  <td><input type="checkbox" /></td>
-
-  <td>
-    <img
-      src="../src/assets/recliner.png"
-      alt="chair"
-      className="product-img"
-    />
-  </td>
-
-  <td>
-    <strong>RCL-001</strong>
-    <div className="barcode">8901234567897</div>
-  </td>
-
-  <td>Recliner Chair</td>
-  <td>Chairs</td>
-  <td>Main Warehouse</td>
-  <td>Aisle 07 - Rack 01</td>
-  <td><span className="qty-orange">3</span></td>
-  <td>Nos</td>
-  <td><span className="orange">Low Stock</span></td>
-  <td>₹95,000</td>
-
-  <td>
-    <div className="action-icons">
-      <FaEye />
-      <FaEllipsisV />
-    </div>
-  </td>
-</tr>
-
-{/* Row 9 */}
-<tr>
-  <td><input type="checkbox" /></td>
-
-  <td>
-    <img
-      src="../src/assets/bookstable.png"
-      alt="Book"
-      className="product-img"
-    />
-  </td>
-
-  <td>
-    <strong>BSH-001</strong>
-    <div className="barcode">8901234567898</div>
-  </td>
-
-  <td>Bookshelf</td>
-  <td>Storage</td>
-  <td>Main Warehouse</td>
-  <td>Aisle 07 - Rack 03</td>
-  <td><span className="qty-red">0</span></td>
-  <td>Nos</td>
-  <td><span className="red">Out Of Stock</span></td>
-  <td>₹75,000</td>
-
-  <td>
-    <div className="action-icons">
-      <FaEye />
-      <FaEllipsisV />
-    </div>
-  </td>
-</tr>
-
-    </tbody>
-  </table>
-</div>
-
-        <div className="table-footer">
-          Showing 1 to 10 of 120 entries
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} /></th>
+                <th>Image</th>
+                <th>SKU / Barcode</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Warehouse</th>
+                <th>Location</th>
+                <th>Available Qty</th>
+                <th>Unit</th>
+                <th>Status</th>
+                <th>Value</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentItems.length > 0 ? currentItems.map((item) => (
+                <tr key={item.id}>
+                  <td><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} /></td>
+                  <td>
+                    <img
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.productName)}&background=f3f4f6&color=1f2937&size=100`}
+                      alt={item.productName}
+                      className="product-img"
+                    />
+                  </td>
+                  <td>
+                    <strong>{item.sku}</strong>
+                    <div className="barcode">{item.barcode}</div>
+                  </td>
+                  <td>{item.productName}</td>
+                  <td>{item.category}</td>
+                  <td>{item.warehouse}</td>
+                  <td>{item.location}</td>
+                  <td>
+                    <span className={item.status === "In Stock" ? "qty-green" : item.status === "Low Stock" ? "qty-orange" : "qty-red"}>
+                      {item.availableQty}
+                    </span>
+                  </td>
+                  <td>{item.unit}</td>
+                  <td>
+                    <span className={item.status === "In Stock" ? "green" : item.status === "Low Stock" ? "orange" : "red"}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td>₹{item.stockValue.toLocaleString("en-IN")}</td>
+                  <td>
+                    <div className="action-icons relative">
+                      <FaEye onClick={() => setViewItem(item)} title="View Details" />
+                      <FaEllipsisV 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === item.id ? null : item.id);
+                        }} 
+                        title="More Options" 
+                        className="cursor-pointer"
+                      />
+                      {openDropdownId === item.id && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-[9]" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(null);
+                            }}
+                          />
+                          <div className="absolute right-0 top-full mt-1 bg-white border border-surface-border rounded-lg shadow-lg w-32 z-10 py-1 text-left">
+                            <button 
+                              className="w-full text-left px-4 py-2 text-[13px] hover:bg-gray-50 text-surface-text transition-colors"
+                              onClick={() => {
+                                setEditItem(item);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              Edit Item
+                            </button>
+                            <button 
+                              className="w-full text-left px-4 py-2 text-[13px] hover:bg-gray-50 text-brand-600 transition-colors"
+                              onClick={() => {
+                                router.push('/inventory/stock-in');
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              Add Stock
+                            </button>
+                            <button 
+                              className="w-full text-left px-4 py-2 text-[13px] hover:bg-red-50 text-red-600 transition-colors"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete ${item.productName}?`)) {
+                                  useInventoryStore.getState().deleteItem(item.id);
+                                }
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={12} style={{ textAlign: "center", padding: "40px" }} className="text-surface-muted">No items found matching the filters.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        <div className="pagination">
-          <button>{"<"}</button>
+          <div className="table-footer flex justify-between items-center">
+          <div>
+            Showing {filteredItems.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + pageSize, filteredItems.length)} of {filteredItems.length} entries
+          </div>
+          <div className="pagination">
+            <button onClick={() => setPage(Math.max(currentPage - 1, 1))} disabled={currentPage === 1}>{"<"}</button>
+            
+            {Array.from({ length: totalPages }).map((_, idx) => (
+              <button
+                key={idx + 1}
+                className={currentPage === idx + 1 ? "active-page" : ""}
+                onClick={() => setPage(idx + 1)}
+              >
+                {idx + 1}
+              </button>
+            ))}
 
-          <button className="active-page">1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>4</button>
-          <button>5</button>
-
-          <button>{">"}</button>
+            <button onClick={() => setPage(Math.min(currentPage + 1, totalPages))} disabled={currentPage === totalPages}>{">"}</button>
+          </div>
         </div>
       </div>
+      
+      {/* Item Details Modal */}
+      {viewItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setViewItem(null)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-surface-border">
+              <h3 className="font-semibold text-lg text-surface-text">Item Details</h3>
+              <button onClick={() => setViewItem(null)} className="text-gray-400 hover:text-gray-600">
+                <FaTimesCircle size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-surface-text">
+              <div className="flex items-center gap-4 mb-6">
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(viewItem.productName)}&background=f3f4f6&color=1f2937&size=100`} alt={viewItem.productName} className="w-16 h-16 rounded-lg" />
+                <div>
+                  <h4 className="font-semibold text-base">{viewItem.productName}</h4>
+                  <p className="text-surface-muted text-xs">{viewItem.sku} | {viewItem.barcode}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><p className="text-surface-muted mb-1 text-xs">Category</p><p className="font-medium">{viewItem.category}</p></div>
+                <div><p className="text-surface-muted mb-1 text-xs">Status</p><p className="font-medium">{viewItem.status}</p></div>
+                <div><p className="text-surface-muted mb-1 text-xs">Warehouse</p><p className="font-medium">{viewItem.warehouse}</p></div>
+                <div><p className="text-surface-muted mb-1 text-xs">Location</p><p className="font-medium">{viewItem.location}</p></div>
+                <div><p className="text-surface-muted mb-1 text-xs">Available Qty</p><p className="font-medium">{viewItem.availableQty} {viewItem.unit}</p></div>
+                <div><p className="text-surface-muted mb-1 text-xs">Stock Value</p><p className="font-medium">₹{viewItem.stockValue.toLocaleString("en-IN")}</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {editItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEditItem(null)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-surface-border">
+              <h3 className="font-semibold text-lg text-surface-text">Edit Item</h3>
+              <button onClick={() => setEditItem(null)} className="text-gray-400 hover:text-gray-600">
+                <FaTimesCircle size={20} />
+              </button>
+            </div>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const updates = {
+                  productName: formData.get("productName") as string,
+                  category: formData.get("category") as string,
+                  warehouse: formData.get("warehouse") as string,
+                  location: formData.get("location") as string,
+                  availableQty: parseInt(formData.get("availableQty") as string, 10),
+                  stockValue: parseInt(formData.get("stockValue") as string, 10),
+                };
+                useInventoryStore.getState().updateItem(editItem.id, updates);
+                setEditItem(null);
+              }}
+              className="p-6 space-y-4 text-sm text-surface-text"
+            >
+              <div>
+                <label className="block text-xs font-medium text-surface-muted mb-1">Product Name</label>
+                <input name="productName" defaultValue={editItem.productName} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Category</label>
+                  <select name="category" defaultValue={editItem.category} className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {CATEGORIES.filter(c => c !== "All Categories").map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Warehouse</label>
+                  <select name="warehouse" defaultValue={editItem.warehouse} className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {WAREHOUSES.filter(w => w !== "All Warehouses").map(w => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Location</label>
+                  <select name="location" defaultValue={editItem.location} className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {LOCATIONS.filter(l => l !== "All Locations").map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Available Qty</label>
+                  <input name="availableQty" type="number" min="0" defaultValue={editItem.availableQty} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Value (₹)</label>
+                  <input name="stockValue" type="number" min="0" defaultValue={editItem.stockValue} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-surface-border mt-2">
+                <button type="button" onClick={() => setEditItem(null)} className="px-4 py-2 border border-surface-border rounded-lg text-sm font-medium hover:bg-gray-50 text-surface-text">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
