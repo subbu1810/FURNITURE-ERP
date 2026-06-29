@@ -1,4 +1,4 @@
-/* Installation page css */
+Installation page css
 
 .installation-page{
   width:100%;
@@ -608,4 +608,117 @@ tbody tr:hover{
   .timeline::before{
     display:none;
   }
+}
+
+.detail-grid input{
+  width:100%;
+  margin-top:8px;
+  height:40px;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  padding:0 10px;
+}
+
+.modal-save-btn{
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  padding:12px 24px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:600;
+  margin-top:20px;
+}
+
+/* =========================
+   ADMIN DROPDOWN
+========================= */
+
+.admin{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+}
+
+.admin-menu{
+  position:absolute;
+  top:50px;
+  right:0;
+  width:220px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.12);
+  z-index:999;
+  overflow:hidden;
+}
+
+.admin-item{
+  padding:14px 16px;
+  font-size:14px;
+  color:#374151;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.admin-item:hover{
+  background:#f3f4f6;
+  color:#2563eb;
+}
+
+/* =========================
+   NOTIFICATION DROPDOWN
+========================= */
+
+.notification{
+  position:relative;
+  cursor:pointer;
+}
+
+.notification-menu{
+  position:absolute;
+  top:55px;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  width:280px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.12);
+  z-index:999;
+  overflow:hidden;
+}
+
+.notification-header{
+  padding:14px;
+  font-weight:600;
+  border-bottom:1px solid #e5e7eb;
+  background:#f8fafc;
+}
+
+.notification-item{
+  padding:12px 14px;
+  font-size:14px;
+  border-bottom:1px solid #f1f5f9;
+  cursor:pointer;
+}
+
+.notification-item:hover{
+  background:#f3f4f6;
+}
+
+.view-all{
+  color:#2563eb;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:500;
+}
+
+.view-all:hover{
+  text-decoration:underline;
 }
