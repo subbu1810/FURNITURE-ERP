@@ -7,13 +7,27 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { OUTLETS } from "@/store/useUIStore";
 import { cn } from "@/lib/utils";
 
-const ROLES: UserAccount["role"][] = ["Super Admin", "Admin", "Manager", "Staff", "Accountant"];
+const ROLES: UserAccount["role"][] = [
+  "Super Admin", 
+  "Admin", 
+  "Manager", 
+  "Staff", 
+  "Sales Staff", 
+  "Support Staff", 
+  "Inventory Staff", 
+  "Delivery Staff", 
+  "Accountant"
+];
 
 const ROLE_PERMS: Record<UserAccount["role"], string> = {
   "Super Admin": "Full access to all modules, settings, and outlets",
   Admin: "Manage inventory, orders, and reports across outlets",
   Manager: "Manage operations for assigned outlet only",
   Staff: "View and process orders, stock at assigned outlet",
+  "Sales Staff": "Handle customer sales and order processing",
+  "Support Staff": "Manage customer inquiries and after-sales support",
+  "Inventory Staff": "Manage stock intakes, transfers, and counts",
+  "Delivery Staff": "Access delivery schedules and routing information",
   Accountant: "Access to billing, payments, and financial reports",
 };
 

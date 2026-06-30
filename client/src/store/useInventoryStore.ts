@@ -29,6 +29,7 @@ interface InventoryState {
   toggleSelectAll: (ids: string[]) => void;
   clearSelection: () => void;
 
+  createItem: (item: Omit<StockItem, "id">) => void;
   addStock: (sku: string, qty: number) => void;
   updateItem: (id: string, updates: Partial<StockItem>) => void;
   deleteItem: (id: string) => void;
@@ -98,6 +99,15 @@ export const useInventoryStore = create<InventoryState>()(
 
       clearSelection: () => set({ selectedIds: new Set() }),
 
+      createItem: (item) =>
+        set((state) => {
+          const newItem = {
+            ...item,
+            id: Date.now().toString(),
+          } as StockItem;
+          return { items: [newItem, ...state.items] };
+        }),
+
       addStock: (sku: string, qty: number) =>
         set((state) => {
           const nextItems = state.items.map((item) => {
@@ -164,6 +174,14 @@ export const useInventoryStore = create<InventoryState>()(
     }),
     {
       name: "furniture-inventory-storage",
+      version: 1, // Clear cache and load new image data
+      migrate: (persistedState: any, version: number) => {
+        // If migrating from an older version, wipe the cache and use fresh data
+        if (version === 0) {
+          return { items: STOCK_ITEMS };
+        }
+        return persistedState as any;
+      },
       partialize: (state) => ({ items: state.items }), // Only persist the items array
     }
   )

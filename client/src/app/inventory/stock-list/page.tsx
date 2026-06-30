@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useInventoryStore } from "@/store/useInventoryStore";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, WAREHOUSES, LOCATIONS, STATUSES, type StockItem } from "@/lib/inventory-data";
+import { CATEGORIES, WAREHOUSES, LOCATIONS, STATUSES, STOCK_ITEMS, getDefaultImage, type StockItem } from "@/lib/inventory-data";
 import { Topbar } from "@/components/layout/Topbar";
 import {
   FaBox,
@@ -21,12 +21,13 @@ function StockList() {
   const [mounted, setMounted] = useState(false);
   const [viewItem, setViewItem] = useState<StockItem | null>(null);
   const [editItem, setEditItem] = useState<StockItem | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   const {
     items,
     searchQuery,
@@ -45,6 +46,9 @@ function StockList() {
     setPage,
     toggleSelect,
     toggleSelectAll,
+    clearSelection,
+    deleteItem,
+    createItem,
     getFilteredItems,
     getStats,
   } = useInventoryStore();
@@ -84,11 +88,11 @@ function StockList() {
     const headers = ["SKU", "Product Name", "Category", "Warehouse", "Location", "Available Qty", "Status", "Stock Value"];
     const csvContent = [
       headers.join(","),
-      ...currentItems.map(item => 
+      ...currentItems.map(item =>
         [item.sku, `"${item.productName}"`, item.category, `"${item.warehouse}"`, `"${item.location}"`, item.availableQty, item.status, item.stockValue].join(",")
       )
     ].join("\n");
-    
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -101,13 +105,14 @@ function StockList() {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-surface-page">
-      <Topbar 
-        title="Stock List" 
-        breadcrumb={["Inventory", "Stock List"]} 
+      <Topbar
+        title="Stock List"
+        breadcrumb={["Inventory", "Stock List"]}
         showOutletFilter={false}
         showDateFilter={false}
         actionSlot={
           <>
+            <button onClick={() => setIsAddModalOpen(true)} className="px-4 py-2 border border-surface-border rounded-lg text-[13px] font-medium text-surface-text hover:bg-gray-50 mr-2 bg-white">+ Add Product</button>
             <button onClick={handleExport} className="px-4 py-2 border border-surface-border rounded-lg text-[13px] font-medium text-surface-text hover:bg-gray-50 mr-2 bg-white">Export</button>
             <button onClick={() => router.push("/inventory/stock-in")} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-[13px] font-medium hover:bg-brand-700">+ Stock In</button>
           </>
@@ -163,7 +168,6 @@ function StockList() {
             <div className="card-icon icon-blue">₹</div>
             <h4>Stock Value</h4>
             <h2>₹{stats.stockValue.toLocaleString("en-IN")}</h2>
-            <p className="card-link">View valuation →</p>
           </div>
         </div>
 
@@ -225,9 +229,9 @@ function StockList() {
                   <td><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} /></td>
                   <td>
                     <img
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.productName)}&background=f3f4f6&color=1f2937&size=100`}
+                      src={item.imageUrl || STOCK_ITEMS.find(s => s.sku === item.sku)?.imageUrl || getDefaultImage(item.category, item.productName)}
                       alt={item.productName}
-                      className="product-img"
+                      className="product-img object-cover rounded-md"
                     />
                   </td>
                   <td>
@@ -253,25 +257,25 @@ function StockList() {
                   <td>
                     <div className="action-icons relative">
                       <FaEye onClick={() => setViewItem(item)} title="View Details" />
-                      <FaEllipsisV 
+                      <FaEllipsisV
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenDropdownId(openDropdownId === item.id ? null : item.id);
-                        }} 
-                        title="More Options" 
+                        }}
+                        title="More Options"
                         className="cursor-pointer"
                       />
                       {openDropdownId === item.id && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-[9]" 
+                          <div
+                            className="fixed inset-0 z-[9]"
                             onClick={(e) => {
                               e.stopPropagation();
                               setOpenDropdownId(null);
                             }}
                           />
                           <div className="absolute right-0 top-full mt-1 bg-white border border-surface-border rounded-lg shadow-lg w-32 z-10 py-1 text-left">
-                            <button 
+                            <button
                               className="w-full text-left px-4 py-2 text-[13px] hover:bg-gray-50 text-surface-text transition-colors"
                               onClick={() => {
                                 setEditItem(item);
@@ -280,7 +284,7 @@ function StockList() {
                             >
                               Edit Item
                             </button>
-                            <button 
+                            <button
                               className="w-full text-left px-4 py-2 text-[13px] hover:bg-gray-50 text-brand-600 transition-colors"
                               onClick={() => {
                                 router.push('/inventory/stock-in');
@@ -289,7 +293,7 @@ function StockList() {
                             >
                               Add Stock
                             </button>
-                            <button 
+                            <button
                               className="w-full text-left px-4 py-2 text-[13px] hover:bg-red-50 text-red-600 transition-colors"
                               onClick={() => {
                                 if (confirm(`Are you sure you want to delete ${item.productName}?`)) {
@@ -315,13 +319,13 @@ function StockList() {
           </table>
         </div>
 
-          <div className="table-footer flex justify-between items-center">
+        <div className="table-footer flex justify-between items-center">
           <div>
             Showing {filteredItems.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + pageSize, filteredItems.length)} of {filteredItems.length} entries
           </div>
           <div className="pagination">
             <button onClick={() => setPage(Math.max(currentPage - 1, 1))} disabled={currentPage === 1}>{"<"}</button>
-            
+
             {Array.from({ length: totalPages }).map((_, idx) => (
               <button
                 key={idx + 1}
@@ -336,7 +340,7 @@ function StockList() {
           </div>
         </div>
       </div>
-      
+
       {/* Item Details Modal */}
       {viewItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setViewItem(null)}>
@@ -349,7 +353,7 @@ function StockList() {
             </div>
             <div className="p-6 space-y-4 text-sm text-surface-text">
               <div className="flex items-center gap-4 mb-6">
-                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(viewItem.productName)}&background=f3f4f6&color=1f2937&size=100`} alt={viewItem.productName} className="w-16 h-16 rounded-lg" />
+                <img src={viewItem.imageUrl || STOCK_ITEMS.find(s => s.sku === viewItem.sku)?.imageUrl || getDefaultImage(viewItem.category, viewItem.productName)} alt={viewItem.productName} className="w-16 h-16 rounded-lg object-cover" />
                 <div>
                   <h4 className="font-semibold text-base">{viewItem.productName}</h4>
                   <p className="text-surface-muted text-xs">{viewItem.sku} | {viewItem.barcode}</p>
@@ -378,7 +382,7 @@ function StockList() {
                 <FaTimesCircle size={20} />
               </button>
             </div>
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
@@ -389,15 +393,42 @@ function StockList() {
                   location: formData.get("location") as string,
                   availableQty: parseInt(formData.get("availableQty") as string, 10),
                   stockValue: parseInt(formData.get("stockValue") as string, 10),
+                  stockAlert: parseInt(formData.get("stockAlert") as string, 10) || 0,
+                  stockAvailability: formData.get("stockAvailability") as string,
+                  imageUrl: formData.get("imageUrl") as string || editItem.imageUrl,
                 };
                 useInventoryStore.getState().updateItem(editItem.id, updates);
                 setEditItem(null);
               }}
               className="p-6 space-y-4 text-sm text-surface-text"
             >
-              <div>
-                <label className="block text-xs font-medium text-surface-muted mb-1">Product Name</label>
-                <input name="productName" defaultValue={editItem.productName} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <div className="flex items-center gap-4">
+                <input type="hidden" name="imageUrl" id="hiddenImageUrl" defaultValue={editItem.imageUrl || ""} />
+                <input type="file" accept="image/*" className="hidden" id="editImageUpload" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    const imgPreview = document.getElementById("editImagePreview") as HTMLImageElement;
+                    if (imgPreview) imgPreview.src = url;
+                    const hiddenInput = document.getElementById("hiddenImageUrl") as HTMLInputElement;
+                    if (hiddenInput) hiddenInput.value = url;
+                  }
+                }} />
+                <div className="relative group cursor-pointer shrink-0" onClick={() => document.getElementById("editImageUpload")?.click()}>
+                  <img 
+                    id="editImagePreview"
+                    src={editItem.imageUrl || STOCK_ITEMS.find(s => s.sku === editItem.sku)?.imageUrl || getDefaultImage(editItem.category, editItem.productName)} 
+                    alt={editItem.productName} 
+                    className="w-16 h-16 rounded-lg object-cover border border-surface-border" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-[10px] font-medium text-center px-1">Change<br/>Image</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Product Name</label>
+                  <input name="productName" defaultValue={editItem.productName} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -422,6 +453,19 @@ function StockList() {
                   <label className="block text-xs font-medium text-surface-muted mb-1">Available Qty</label>
                   <input name="availableQty" type="number" min="0" defaultValue={editItem.availableQty} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Alert</label>
+                  <input name="stockAlert" type="number" min="0" defaultValue={editItem.stockAlert || 10} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Availability</label>
+                  <select name="stockAvailability" defaultValue={editItem.stockAvailability || "Available"} className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="Available">Available</option>
+                    <option value="Reserved">Reserved</option>
+                    <option value="On Hold">On Hold</option>
+                    <option value="Discontinued">Discontinued</option>
+                  </select>
+                </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-surface-muted mb-1">Stock Value (₹)</label>
                   <input name="stockValue" type="number" min="0" defaultValue={editItem.stockValue} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
@@ -430,6 +474,131 @@ function StockList() {
               <div className="pt-4 flex justify-end gap-3 border-t border-surface-border mt-2">
                 <button type="button" onClick={() => setEditItem(null)} className="px-4 py-2 border border-surface-border rounded-lg text-sm font-medium hover:bg-gray-50 text-surface-text">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-surface-border flex items-center justify-between">
+              <h3 className="font-semibold text-lg text-surface-text">Add New Product</h3>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-surface-muted hover:text-surface-text">
+                <FaTimesCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const category = formData.get("category") as string;
+                const productName = formData.get("productName") as string;
+                const imageUrl = formData.get("imageUrl") as string || getDefaultImage(category, productName);
+                
+                const newItem: Omit<StockItem, "id"> = {
+                  sku: formData.get("sku") as string,
+                  barcode: formData.get("barcode") as string,
+                  productName,
+                  category,
+                  warehouse: formData.get("warehouse") as string,
+                  location: formData.get("location") as string,
+                  availableQty: parseInt(formData.get("availableQty") as string, 10),
+                  unit: formData.get("unit") as string,
+                  stockValue: parseInt(formData.get("stockValue") as string, 10),
+                  stockAlert: parseInt(formData.get("stockAlert") as string, 10) || 10,
+                  stockAvailability: formData.get("stockAvailability") as string,
+                  status: parseInt(formData.get("availableQty") as string, 10) > 0 ? "In Stock" : "Out of Stock",
+                  imageUrl,
+                };
+                createItem(newItem);
+                setIsAddModalOpen(false);
+              }}
+              className="p-6 space-y-4 text-sm text-surface-text overflow-y-auto"
+            >
+              <div className="flex items-center gap-4">
+                <input type="hidden" name="imageUrl" id="newImageHiddenUrl" />
+                <input type="file" accept="image/*" className="hidden" id="newImageUpload" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    const imgPreview = document.getElementById("newImagePreview") as HTMLImageElement;
+                    if (imgPreview) imgPreview.src = url;
+                    const hiddenInput = document.getElementById("newImageHiddenUrl") as HTMLInputElement;
+                    if (hiddenInput) hiddenInput.value = url;
+                  }
+                }} />
+                <div className="relative group cursor-pointer shrink-0" onClick={() => document.getElementById("newImageUpload")?.click()}>
+                  <img 
+                    id="newImagePreview"
+                    src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&h=100&fit=crop" 
+                    alt="Upload Preview" 
+                    className="w-16 h-16 rounded-lg object-cover border border-surface-border" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-[10px] font-medium text-center px-1">Upload<br/>Image</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Product Name</label>
+                  <input name="productName" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">SKU</label>
+                  <input name="sku" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Barcode</label>
+                  <input name="barcode" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Category</label>
+                  <select name="category" className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {CATEGORIES.filter(c => c !== "All Categories").map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Unit</label>
+                  <input name="unit" defaultValue="Nos" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Warehouse</label>
+                  <select name="warehouse" className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {WAREHOUSES.filter(w => w !== "All Warehouses").map(w => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Location</label>
+                  <select name="location" className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {LOCATIONS.filter(l => l !== "All Locations").map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Available Qty</label>
+                  <input name="availableQty" type="number" min="0" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Alert</label>
+                  <input name="stockAlert" type="number" min="0" defaultValue={10} required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Value</label>
+                  <input name="stockValue" type="number" min="0" required className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-surface-muted mb-1">Stock Availability</label>
+                  <select name="stockAvailability" className="w-full px-3 py-2 border border-surface-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-surface-border">
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 border border-surface-border rounded-lg font-medium hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700">Add Product</button>
               </div>
             </form>
           </div>

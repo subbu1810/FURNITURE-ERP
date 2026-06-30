@@ -4,7 +4,7 @@ export interface UserAccount {
   id: string;
   name: string;
   email: string;
-  role: "Super Admin" | "Admin" | "Manager" | "Staff" | "Accountant";
+  role: "Super Admin" | "Admin" | "Manager" | "Staff" | "Sales Staff" | "Support Staff" | "Inventory Staff" | "Delivery Staff" | "Accountant";
   outlet: string;
   status: "Active" | "Inactive";
   lastActive: string;
@@ -26,6 +26,7 @@ interface ProfileState {
   phone: string;
   role: string;
   initials: string;
+  avatar?: string;
 }
 
 interface CompanyState {

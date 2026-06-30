@@ -15,7 +15,7 @@ function ProgressBar({ completed, planned }: { completed: number; planned: numbe
       <span className="text-[13px] font-medium text-surface-text">
         {completed} <span className="text-surface-muted font-normal text-[11.5px]">({pct}%)</span>
       </span>
-      <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+      <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
         <div className={cn("h-full rounded-full transition-all duration-300", color)} style={{ width: `${pct}%` }} />
       </div>
     </div>

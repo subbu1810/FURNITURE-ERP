@@ -466,8 +466,12 @@ export function Topbar({
                 onClick={() => setProfileOpen((o) => !o)}
                 className="flex items-center gap-2 pl-4 border-l border-surface-border cursor-pointer"
               >
-                <div className="w-[30px] h-[30px] rounded-full bg-surface-border text-surface-text flex items-center justify-center text-xs font-semibold overflow-hidden">
-                  <img src="https://ui-avatars.com/api/?name=Admin&background=f3f4f6&color=1f2937" alt="Admin" className="w-full h-full object-cover" />
+                <div className="w-[30px] h-[30px] rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-semibold overflow-hidden">
+                  {profile.avatar ? (
+                    <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                  ) : (
+                    profile.initials
+                  )}
                 </div>
                 <span className="text-[13.5px] font-medium text-surface-text">{profile.name.split(" ")[0]}</span>
               </button>

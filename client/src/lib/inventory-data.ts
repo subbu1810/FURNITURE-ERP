@@ -12,7 +12,11 @@ export interface StockItem {
   unit: string;
   status: StockStatus;
   stockValue: number;
+  stockAlert?: number;
+  stockAvailability?: string;
+  imageUrl?: string;
 }
+
 
 export const STOCK_ITEMS: StockItem[] = [
   {
@@ -223,6 +227,31 @@ export const CATEGORIES = [
   "Mattresses",
   "Decor",
 ];
+
+export const CATEGORY_IMAGES: Record<string, string> = {
+  "Sofas": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&h=100&fit=crop",
+  "Beds": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=100&h=100&fit=crop",
+  "Dining": "https://images.unsplash.com/photo-1615873968403-89e068629265?w=100&h=100&fit=crop",
+  "Wardrobes": "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=100&h=100&fit=crop",
+  "Tables": "https://images.unsplash.com/photo-1532372320572-cda25653a26d?w=100&h=100&fit=crop",
+  "Chairs": "https://images.unsplash.com/photo-1592078615290-033ee584e267?w=100&h=100&fit=crop",
+  "Mattresses": "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=100&h=100&fit=crop",
+  "Decor": "https://images.unsplash.com/photo-1618220179428-22790b46a0eb?w=100&h=100&fit=crop",
+};
+
+export function getDefaultImage(category: string, productName: string) {
+  const nameLower = productName.toLowerCase();
+  if (nameLower.includes("bed")) return CATEGORY_IMAGES["Beds"];
+  if (nameLower.includes("sofa")) return CATEGORY_IMAGES["Sofas"];
+  if (nameLower.includes("table")) return CATEGORY_IMAGES["Tables"];
+  if (nameLower.includes("chair")) return CATEGORY_IMAGES["Chairs"];
+  if (nameLower.includes("wardrobe") || nameLower.includes("cabinet") || nameLower.includes("shelf")) return CATEGORY_IMAGES["Wardrobes"];
+  if (nameLower.includes("dining")) return CATEGORY_IMAGES["Dining"];
+  if (nameLower.includes("mattress")) return CATEGORY_IMAGES["Mattresses"];
+  if (nameLower.includes("decor") || nameLower.includes("mirror") || nameLower.includes("rug")) return CATEGORY_IMAGES["Decor"];
+
+  return CATEGORY_IMAGES[category] || CATEGORY_IMAGES["Sofas"];
+}
 
 export const WAREHOUSES = [
   "All Warehouses",

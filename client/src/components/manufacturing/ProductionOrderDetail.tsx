@@ -5,6 +5,7 @@ import { Package, Edit2, X, FileText, Hash, Boxes } from "lucide-react";
 import { useProductionStore } from "@/store/useProductionStore";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
+import { STOCK_ITEMS } from "@/lib/inventory-data";
 
 const TABS = ["Overview", "BOM & Components", "Material Issue", "Work Orders", "Production", "History"] as const;
 
@@ -17,14 +18,14 @@ function DonutChart({ completed, planned }: { completed: number; planned: number
   return (
     <div className="relative w-32 h-32 shrink-0">
       <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="12" />
+        <circle cx="60" cy="60" r={radius} fill="none" stroke="#E0E7FF" strokeWidth="14" />
         <circle
           cx="60"
           cy="60"
           r={radius}
           fill="none"
-          stroke="#1565C0"
-          strokeWidth="12"
+          stroke="#1D4ED8"
+          strokeWidth="14"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
@@ -127,11 +128,14 @@ export function ProductionOrderDetail() {
 
   if (!order) {
     return (
-      <div className="bg-white rounded-card border border-surface-border shadow-card p-8 flex items-center justify-center h-full">
-        <p className="text-[13px] text-surface-muted">Select a production order to view details.</p>
+      <div className="bg-white rounded-card border border-surface-border shadow-card flex items-center justify-center h-[500px] text-surface-muted">
+        Select an order to view details
       </div>
     );
   }
+
+  const productItem = STOCK_ITEMS.find(s => s.productName === order.product);
+  const imgUrl = productItem?.imageUrl || "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=100&h=100&fit=crop";
 
   const inProgressQty = order.steps
     .filter((s) => s.status === "In Progress")
@@ -152,8 +156,8 @@ export function ProductionOrderDetail() {
 
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                <Package size={18} className="text-surface-muted" />
+              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden border border-surface-border">
+                <img src={imgUrl} alt={order.product} className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="text-[13px] font-medium text-surface-text">{order.product}</p>
@@ -193,34 +197,70 @@ export function ProductionOrderDetail() {
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {activeTab === "Overview" && (
             <>
-              {/* Progress Summary */}
-              <div>
-                <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Progress Summary</h3>
-                <div className="flex items-center gap-6">
-                  <DonutChart completed={order.completedQty} planned={order.plannedQty} />
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center justify-between text-[12.5px]">
-                      <span className="text-surface-muted">Completed Qty</span>
-                      <span className="font-medium text-status-green">{order.completedQty} Nos</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column */}
+              <div className="space-y-8">
+                {/* Progress Summary */}
+                <div>
+                  <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Progress Summary</h3>
+                  <div className="flex items-center gap-6">
+                    <DonutChart completed={order.completedQty} planned={order.plannedQty} />
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center justify-between text-[12.5px]">
+                        <span className="text-surface-muted">Completed Qty</span>
+                        <span className="font-medium text-status-green">{order.completedQty} Nos</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[12.5px]">
+                        <span className="text-surface-muted">In Progress Qty</span>
+                        <span className="font-medium text-status-blue">{Math.max(0, inProgressQty)} Nos</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[12.5px]">
+                        <span className="text-surface-muted">Pending Qty</span>
+                        <span className="font-medium text-status-orange">{Math.max(0, pendingQty)} Nos</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[12.5px] pt-2 border-t border-surface-border">
+                        <span className="text-surface-muted">Total Qty</span>
+                        <span className="font-semibold text-surface-text">{order.plannedQty} Nos</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-[12.5px]">
-                      <span className="text-surface-muted">In Progress Qty</span>
-                      <span className="font-medium text-status-blue">{Math.max(0, inProgressQty)} Nos</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[12.5px]">
-                      <span className="text-surface-muted">Pending Qty</span>
-                      <span className="font-medium text-status-orange">{Math.max(0, pendingQty)} Nos</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[12.5px] pt-2 border-t border-surface-border">
-                      <span className="text-surface-muted">Total Qty</span>
-                      <span className="font-semibold text-surface-text">{order.plannedQty} Nos</span>
-                    </div>
+                  </div>
+                </div>
+
+                {/* Production Steps */}
+                <div>
+                  <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Production Steps</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-surface-border">
+                          <th className="py-2 text-[11px] font-medium text-surface-muted whitespace-nowrap">Step</th>
+                          <th className="py-2 text-[11px] font-medium text-surface-muted whitespace-nowrap">Work Center</th>
+                          <th className="py-2 text-[11px] font-medium text-surface-muted whitespace-nowrap">Planned Qty</th>
+                          <th className="py-2 text-[11px] font-medium text-surface-muted whitespace-nowrap">Completed Qty</th>
+                          <th className="py-2 text-[11px] font-medium text-surface-muted whitespace-nowrap">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.steps.map((step) => (
+                          <tr key={step.step} className="border-b border-surface-border/50 last:border-0">
+                            <td className="py-2.5 text-[12px] text-surface-muted">{step.step}</td>
+                            <td className="py-2.5 text-[12px] font-medium text-surface-text">{step.workCenter}</td>
+                            <td className="py-2.5 text-[12px] text-surface-muted">{step.plannedQty} Nos</td>
+                            <td className="py-2.5 text-[12px] text-surface-muted">{step.completedQty} Nos</td>
+                            <td className="py-2.5">
+                              <StatusBadge status={step.status} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
 
-              {/* Dates + Additional info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Right Column */}
+              <div className="space-y-8">
+                {/* Dates */}
                 <div>
                   <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Dates</h3>
                   <div className="space-y-2 text-[12.5px]">
@@ -243,6 +283,7 @@ export function ProductionOrderDetail() {
                   </div>
                 </div>
 
+                {/* Additional Info */}
                 <div>
                   <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Additional Information</h3>
                   <div className="space-y-2 text-[12.5px]">
@@ -265,37 +306,7 @@ export function ProductionOrderDetail() {
                   </div>
                 </div>
               </div>
-
-              {/* Production Steps */}
-              <div>
-                <h3 className="text-[12.5px] font-semibold text-surface-text mb-3">Production Steps</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th className="table-th !pl-0">Step</th>
-                        <th className="table-th">Work Center</th>
-                        <th className="table-th">Planned Qty</th>
-                        <th className="table-th">Completed Qty</th>
-                        <th className="table-th">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.steps.map((s) => (
-                        <tr key={s.step}>
-                          <td className="table-td !pl-0 text-surface-muted">{s.step}</td>
-                          <td className="table-td font-medium text-surface-text">{s.workCenter}</td>
-                          <td className="table-td text-surface-muted">{s.plannedQty} Nos</td>
-                          <td className="table-td text-surface-muted">{s.completedQty} Nos</td>
-                          <td className="table-td">
-                            <StatusBadge status={s.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            </div>
             </>
           )}
 

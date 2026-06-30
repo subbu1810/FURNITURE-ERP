@@ -27,24 +27,20 @@ export function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, lin
   );
 
   const cardContent = (
-    <div className={baseClasses} onClick={onClick}>
-      <div className="flex items-center gap-4">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: iconBg }}
-        >
-          <Icon size={22} style={{ color: iconColor }} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[13px] text-surface-muted font-medium mb-1 truncate">{label}</p>
-          <p className="text-[22px] font-bold text-surface-text truncate">{value}</p>
-        </div>
+    <div className={cn(baseClasses, "gap-3 items-center flex-row")} onClick={onClick}>
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon size={22} style={{ color: iconColor }} />
       </div>
-      <div className="flex items-center justify-between mt-4">
+      <div className="min-w-0 flex flex-col justify-center">
+        <p className="text-[12px] text-surface-muted font-medium truncate">{label}</p>
+        <p className="text-[20px] font-bold text-surface-text truncate leading-tight">{value}</p>
         {sub ? (
           <p
             className={cn(
-              "text-[12px] font-medium flex items-center gap-1",
+              "text-[11px] font-medium flex items-center gap-1 mt-0.5",
               sub.trend === "up" && "text-status-green",
               sub.trend === "down" && "text-status-red",
               !sub.trend && "text-surface-muted"
@@ -52,12 +48,11 @@ export function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, lin
           >
             {sub.text}
           </p>
-        ) : <div />}
-        {link && (
-          <span className="text-[12px] text-brand-600 font-medium hover:underline">
+        ) : link ? (
+          <span className="text-[11px] text-brand-600 font-medium hover:underline mt-0.5">
             {link.text}
           </span>
-        )}
+        ) : <div />}
       </div>
     </div>
   );

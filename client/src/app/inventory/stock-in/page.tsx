@@ -21,19 +21,28 @@ export default function StockInPage() {
       return;
     }
     
-    const itemExists = items.some(item => item.sku === sku);
-    if (!itemExists) {
+    const item = items.find(i => i.sku === sku);
+    if (!item) {
       setMessage("SKU not found in inventory. Please add it as a new product first.");
       return;
     }
     
     addStock(sku, quantity);
-    setMessage(`Successfully added ${quantity} units to ${sku}.`);
+    
+    const newQty = item.availableQty + quantity;
+    const alertThreshold = item.stockAlert || 10;
+    
+    if (newQty <= alertThreshold) {
+      setMessage(`Successfully added ${quantity} units to ${sku}. Warning: Stock is still low (${newQty} total).`);
+    } else {
+      setMessage(`Successfully added ${quantity} units to ${sku}.`);
+    }
+    
     setSku("");
     setQty("");
     
-    // Auto-clear message after 3 seconds
-    setTimeout(() => setMessage(""), 3000);
+    // Auto-clear message after 5 seconds for warnings
+    setTimeout(() => setMessage(""), 5000);
   };
 
   return (
@@ -54,7 +63,11 @@ export default function StockInPage() {
           
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {message && (
-              <div className={`p-4 rounded-md text-sm ${message.includes("Successfully") ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+              <div className={`p-4 rounded-md text-sm ${
+                message.includes("Warning") ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                message.includes("Successfully") ? "bg-green-50 text-green-700 border border-green-200" : 
+                "bg-red-50 text-red-700 border border-red-200"
+              }`}>
                 {message}
               </div>
             )}

@@ -19,7 +19,7 @@ export default function ProductionOrdersPage() {
   const pct = (n: number) => stats.total > 0 ? `${((n / stats.total) * 100).toFixed(2)}% of total` : "0% of total";
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-[#F8F9FA]">
       <Topbar
         title="Production Orders"
         breadcrumb={["Manufacturing", "Production Orders"]}

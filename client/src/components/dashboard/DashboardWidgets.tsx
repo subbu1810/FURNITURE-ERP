@@ -27,9 +27,9 @@ export function TopOutletsTable() {
           <tbody>
             {outlets.map((row) => (
               <tr key={row.outlet}>
-                <td className="text-[13px] py-2 text-surface-text border-t border-surface-border/60 !pl-0">{row.outlet}</td>
-                <td className="text-[13px] py-2 text-surface-text text-right border-t border-surface-border/60">{row.sales}</td>
-                <td className="text-[13px] py-2 text-surface-text text-right border-t border-surface-border/60">{row.orders}</td>
+                <td className="table-td border-t border-surface-border/60 !pl-0">{row.outlet}</td>
+                <td className="table-td text-right border-t border-surface-border/60">{row.sales}</td>
+                <td className="table-td text-right border-t border-surface-border/60">{row.orders}</td>
               </tr>
             ))}
           </tbody>
